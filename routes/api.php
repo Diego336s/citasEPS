@@ -6,12 +6,22 @@ use App\Http\Controllers\EspecialidadesMedicosController;
 use App\Http\Controllers\MedicosController;
 use App\Http\Controllers\PacientesController;
 use App\Http\Controllers\RecepcionistasController;
+use App\Http\Controllers\UserController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/user', function (Request $request) {
-    return $request->user();
-})->middleware('auth:sanctum');
+// Route::get('/user', function (Request $request) {
+//     return $request->user();
+// })->middleware('auth:sanctum');
+
+
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('me', [UserController::class, 'me']);
+});
+Route::post("registrar", [UserController::class, "registrar"]);
+Route::post("login", [UserController::class, "login"]);
+
 
 Route::get("listarMedicos", [MedicosController::class, "index"]);
 Route::post("crearMedico", [MedicosController::class, "store"]);
