@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 
 use App\Models\recepcionistas;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 
 
@@ -17,6 +18,59 @@ class RecepcionistasController extends Controller
         $recepcionistas = recepcionistas::all();
         return response()->json($recepcionistas);
     }
+
+    public function logout(Request $request)
+    {
+        $user = $request->user();
+
+        if ($user && $user->currentAccessToken()) {
+            $user->currentAccessToken()->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Sesión cerrada correctamente'
+            ]);
+        }
+
+        return response()->json([
+            'success' => false,
+            'message' => 'No hay usuario autenticado o token inválido'
+        ], 401);
+    }
+
+    public function login(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            "correo" => "required|email",
+            "clave" => "required"
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                "success" => false,
+                "error" => $validator->errors()
+            ], 422);
+        }
+
+        $recepcionista = recepcionistas::where("correo", $request->correo)->first();
+
+        if (!$recepcionista || !Hash::check($request->clave, $recepcionista->clave)) {
+            return response()->json([
+                "success" => false,
+                "message" => "Credenciales incorrectas"
+            ], 401);
+        }
+
+        // Generar token con ability específica
+        $token = $recepcionista->createToken("auth_token", ["Recepcionista"])->plainTextToken;
+
+        return response()->json([
+            "success" => true,
+            "token" => $token,
+            "token_type" => "Bearer"
+        ]);
+    }
+
 
     public function store(Request $request)
     {
@@ -34,8 +88,22 @@ class RecepcionistasController extends Controller
             return response()->json($validator->errors(), 400);
         }
 
-        $recepcionistas = recepcionistas::create($validator->validated());
-        return response()->json($recepcionistas, 201);
+        $recepcionistas = recepcionistas::create([
+            "nombre" => $request->nombre,
+            "apellido" =>  $request->apellido,
+            "documento" => $request->documento,
+            "telefono" =>  $request->telefono,
+            "correo" =>  $request->correo,
+            "clave" => Hash::make($request->clave)
+        ]);
+        $token = $recepcionistas->createToken("auth_token", ["Recepcionista"])->plainTextToken;
+        return response()->json([
+            "seccess" => true,
+            "message" => "El recepcionista $request->nombre $request->apellido sea registrado exitosamente",
+            "user" => $recepcionistas,
+            "token_access" => $token,
+            "token_type" => "Bearer"
+        ], 201);
     }
 
     public function show(string $id)

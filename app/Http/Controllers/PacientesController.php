@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\pacientes;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 
 class PacientesController extends Controller
@@ -12,6 +13,59 @@ class PacientesController extends Controller
     {
         $pacientes = pacientes::all();
         return response()->json($pacientes);
+    }
+
+    public function login(Request $request)
+{
+    $validator = Validator::make($request->all(), [
+        "correo" => "required|email",
+        "clave" => "required"
+    ]);
+
+    if ($validator->fails()) {
+        return response()->json([
+            "success" => false,
+            "error" => $validator->errors()
+        ], 422);
+    }
+
+    $paciente = pacientes::where("correo", $request->correo)->first();
+
+    if (!$paciente || !Hash::check($request->clave, $paciente->clave)) {
+        return response()->json([
+            "success" => false,
+            "message" => "Credenciales incorrectas"
+        ], 401);
+    }
+
+    // Generar token con ability de Paciente
+    $token = $paciente->createToken("auth_token", ["Paciente"])->plainTextToken;
+
+    return response()->json([
+        "success" => true,
+        "token" => $token,
+        "token_type" => "Bearer"
+    ]);
+}
+
+
+     public function logout(Request $request)
+    {
+        $user = $request->user();
+
+        if ($user && $user->currentAccessToken()) {
+            $user->currentAccessToken()->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Sesión cerrada correctamente'
+            ]);
+        }
+
+        return response()->json([
+            'success' => false,
+            'message' => 'No hay usuario autenticado o token inválido'
+        ], 401);
     }
 
     public function store(Request $request)
@@ -33,8 +87,26 @@ class PacientesController extends Controller
             return response()->json($validator->errors(), 400);
         }
 
-        $medicos = pacientes::create($validator->validated());
-        return response()->json($medicos, 201);
+        $pacientes = pacientes::create([ 
+            "nombre" =>  $request->nombre,
+            "apellido" => $request->apellido,
+            "documento" => $request->documento,
+            "telefono" => $request->telefono,
+            "fecha_nacimiento" => $request->fecha_nacimiento,
+            'rh' => $request->rh,
+            "sexo" => $request->sexo,
+            "nacionalidad" => $request->nacionalidad,
+            "correo" => $request->correo,
+            "clave" => Hash::make($request->clave)
+        ]);
+        $token = $pacientes->createToken("auth_token", ["Paciente"])->plainTextToken;
+        return response()->json([
+            "seccess" => true,
+            "message" => "El paciente $request->nombre $request->apellido sea registrado exitosamente",
+            "user" => $pacientes,
+            "token_access" => $token,
+            "token_type" => "Bearer"
+        ], 201);
     }
 
     public function show(string $id)
@@ -63,8 +135,8 @@ class PacientesController extends Controller
             "rh" => "string",
             "sexo" => "string",
             "nacionalidad" => "string",
-            "correo" => "email",
-            "clave" => "string|min:6"
+            "correo" => "email"
+          
         ]);
 
         if ($validator->fails()) {
