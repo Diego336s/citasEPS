@@ -16,40 +16,40 @@ class PacientesController extends Controller
     }
 
     public function login(Request $request)
-{
-    $validator = Validator::make($request->all(), [
-        "correo" => "required|email",
-        "clave" => "required"
-    ]);
+    {
+        $validator = Validator::make($request->all(), [
+            "correo" => "required|email",
+            "clave" => "required"
+        ]);
 
-    if ($validator->fails()) {
+        if ($validator->fails()) {
+            return response()->json([
+                "success" => false,
+                "error" => $validator->errors()
+            ], 422);
+        }
+
+        $paciente = pacientes::where("correo", $request->correo)->first();
+
+        if (!$paciente || !Hash::check($request->clave, $paciente->clave)) {
+            return response()->json([
+                "success" => false,
+                "message" => "Credenciales incorrectas"
+            ], 401);
+        }
+
+        // Generar token con ability de Paciente
+        $token = $paciente->createToken("auth_token", ["Paciente"])->plainTextToken;
+
         return response()->json([
-            "success" => false,
-            "error" => $validator->errors()
-        ], 422);
+            "success" => true,
+            "token" => $token,
+            "token_type" => "Bearer"
+        ]);
     }
 
-    $paciente = pacientes::where("correo", $request->correo)->first();
 
-    if (!$paciente || !Hash::check($request->clave, $paciente->clave)) {
-        return response()->json([
-            "success" => false,
-            "message" => "Credenciales incorrectas"
-        ], 401);
-    }
-
-    // Generar token con ability de Paciente
-    $token = $paciente->createToken("auth_token", ["Paciente"])->plainTextToken;
-
-    return response()->json([
-        "success" => true,
-        "token" => $token,
-        "token_type" => "Bearer"
-    ]);
-}
-
-
-     public function logout(Request $request)
+    public function logout(Request $request)
     {
         $user = $request->user();
 
@@ -87,7 +87,7 @@ class PacientesController extends Controller
             return response()->json($validator->errors(), 400);
         }
 
-        $pacientes = pacientes::create([ 
+        $pacientes = pacientes::create([
             "nombre" =>  $request->nombre,
             "apellido" => $request->apellido,
             "documento" => $request->documento,
@@ -136,7 +136,7 @@ class PacientesController extends Controller
             "sexo" => "string",
             "nacionalidad" => "string",
             "correo" => "email"
-          
+
         ]);
 
         if ($validator->fails()) {
@@ -170,9 +170,37 @@ class PacientesController extends Controller
         return response()->json($pacientes);
     }
 
-      public function pacientePorRh(string $rh)
+    public function pacientePorRh(string $rh)
     {
         $pacientes = pacientes::where("rh", $rh)->get();
         return response()->json($pacientes);
+    }
+
+    public function cambiarClave(Request $request, string $id)
+    {
+        $paciente = pacientes::find($id);
+        if (!$paciente) {
+            return response()->json(["menssge" => "Paciente no encontrado"]);
+        }
+
+        $validator = Validator::make($request->all(), [
+            "clave" => "string|min:6"
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                "success" => false,
+                "message" => $validator->errors()
+            ], 400);
+        }
+
+        $paciente->update([
+            "clave" => Hash::make($request->clave)
+        ]);
+        return response()->json([
+            "success" => true,
+            "message" => "Cambio de la clave exitosamente"
+
+        ], 200);
     }
 }

@@ -162,4 +162,32 @@ class MedicosController extends Controller
         $medico = medicos::where("documento", $documneto)->get();
         return response()->json($medico);
     }
+
+    public function cambiarClave(Request $request, string $id)
+    {
+        $medico = medicos::find($id);
+        if (!$medico) {
+            return response()->json(["menssge" => "Especialidad no encontrado"]);
+        }
+
+        $validator = Validator::make($request->all(), [
+            "clave" => "string|min:6"
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                "success" => false,
+                "message" => $validator->errors()
+            ], 400);
+        }
+
+        $medico->update([
+            "clave" => Hash::make($request->clave)
+        ]);
+        return response()->json([
+            "success" => true,
+            "message" => "Cambio de la clave exitosamente"
+
+        ], 200);
+    }
 }

@@ -151,4 +151,32 @@ class RecepcionistasController extends Controller
         $recepcionistas->delete();
         return response()->json(["message" => "Recepcionista eliminado correctamente"], 200);
     }
+
+    public function cambiarClave(Request $request, string $id)
+    {
+        $recepcionistas = recepcionistas::find($id);
+        if (!$recepcionistas) {
+            return response()->json(["menssge" => "Recepcionista no encontrado"]);
+        }
+
+        $validator = Validator::make($request->all(), [
+            "clave" => "string|min:6"
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                "success" => false,
+                "message" => $validator->errors()
+            ], 400);
+        }
+
+        $recepcionistas->update([
+            "clave" => Hash::make($request->clave)
+        ]);
+        return response()->json([
+            "success" => true,
+            "message" => "Cambio de la clave exitosamente"
+
+        ], 200);
+    }
 }

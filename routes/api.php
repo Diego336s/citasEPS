@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AdministradoresController;
 use App\Http\Controllers\CitasController;
 use App\Http\Controllers\EspecialidadesController;
 use App\Http\Controllers\EspecialidadesMedicosController;
@@ -21,6 +22,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
     });
     Route::middleware('ability:Medico, Admin')->group(function () {});
 });
+
+Route::post("loginAdmin", [AdministradoresController::class, "login"]);
 
 Route::post("loginMedico", [MedicosController::class, "login"]);
 Route::get('listarMedicos', [MedicosController::class, 'index']);
