@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\especialidades_medicos;
+use App\Models\medicos;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
@@ -30,13 +31,21 @@ class EspecialidadesMedicosController extends Controller
         return response()->json($especialidadesMedicos, 201);
     }
 
-    public function show(string $id)
+    public function filtrar_medicos_por_especialidad (string $id_Especialidad)
     {
-        $especialidadesMedicos = especialidades_medicos::find($id);
-        if (!$especialidadesMedicos) {
-            return response()->json(["message" => "Especialidad del medico no encontrada"], 400);
+        $especialidadesMedicos = especialidades_medicos::where("id_especialidad", $id_Especialidad)->get();
+        if (!$especialidadesMedicos || $especialidadesMedicos->isEmpty()) {
+            return response()->json(["message" => "No hay medicos disponibles con esa especialidad"], 400);
         }
-        return response()->json($especialidadesMedicos);
+
+        $cantidad_de_medicos_filtrados = $especialidadesMedicos->count();
+
+       $informacionMedicos =[];
+        for ($i=0; $i < $cantidad_de_medicos_filtrados; $i++) { 
+          $informacionMedicos = medicos::find($especialidadesMedicos[$i]->id_medico)->get();
+         
+        }
+        return response()->json($informacionMedicos);
     }
 
     public function update(Request $request, string $id)

@@ -21,12 +21,11 @@ class CitasController extends Controller
 
         $validator = Validator::make($request->all(), [
             "descripcion" => "required|string",
-            "consultorio" => "required|string",
+            
             "id_medico" => "required|integer",
             "id_paciente" => "required|integer",
             "fecha" => "required|date",
-            "hora_inicio" => "required",
-            "hora_final" => "required",
+            "hora_inicio" => "required",            
             "estado" => "required|in:Pendiente,Confirmada,Cancelada"
         ]);
 
@@ -58,12 +57,11 @@ class CitasController extends Controller
 
         $validator = Validator::make($request->all(), [
             "descripcion" => "string",
-            "consultorio" => "string",
+           
             "id_medico" => "integer",
             "id_paciente" => "integer",
             "fecha" => "date",
-            "hora_inicio" => "string",
-            "hora_final" => "string",
+            "hora_inicio" => "string",           
             "estado" => "in:Pendiente,Confirmada,Cancelada"
         ]);
 

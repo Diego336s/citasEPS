@@ -98,7 +98,7 @@ class RecepcionistasController extends Controller
         ]);
         $token = $recepcionistas->createToken("auth_token", ["Recepcionista"])->plainTextToken;
         return response()->json([
-            "seccess" => true,
+            "success" => true,
             "message" => "El recepcionista $request->nombre $request->apellido sea registrado exitosamente",
             "user" => $recepcionistas,
             "token_access" => $token,

@@ -20,20 +20,41 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::middleware('ability:Medico')->group(function () {
         Route::post('logoutMedico', [MedicosController::class, 'logout']);
     });
-    Route::middleware('ability:Medico, Admin')->group(function () {});
+    Route::middleware('ability:Medico, Admin')->group(function () {
+        
+        Route::get('listarMedicos', [MedicosController::class, 'index']);
+        Route::post("crearMedico", [MedicosController::class, "store"]);
+        Route::delete("eliminarMedico/{id}", [MedicosController::class, "destroy"]);
+
+        Route::get("listarPaciente", [PacientesController::class, "index"]);
+
+        Route::get("listarRecepcionistas", [RecepcionistasController::class, "index"]);
+        Route::post("crearRecepcionista", [RecepcionistasController::class, "store"]);
+        Route::delete("eliminarRecepcionistas/{id}", [RecepcionistasController::class, "destroy"]);
+
+    });
+    Route::middleware('ability:Paciente, Admin')->group(function () {
+        Route::get("listarEspecialidades", [EspecialidadesController::class, "index"]);
+    });
+    Route::middleware('ability:Paciente')->group(function () {
+        Route::get('me', [PacientesController::class, 'me']);
+        Route::get("filtrarMedicosPorEspecialidad/{id_especialidad}", [EspecialidadesMedicosController::class, "filtrar_medicos_por_especialidad"]);
+
+        Route::post("crearCitas", [CitasController::class, "store"]);
+    });
 });
+
 
 Route::post("loginAdmin", [AdministradoresController::class, "login"]);
 
 Route::post("loginMedico", [MedicosController::class, "login"]);
-Route::get('listarMedicos', [MedicosController::class, 'index']);
-Route::post("crearMedico", [MedicosController::class, "store"]);
+
 Route::put("actualizarMedico/{id}", [MedicosController::class, "update"]);
-Route::delete("eliminarMedico/{id}", [MedicosController::class, "destroy"]);
+
 
 Route::post("loginPaciente", [PacientesController::class, "login"]);
 Route::post('logoutPaciente', [PacientesController::class, 'logout']);
-Route::get("listarPaciente", [PacientesController::class, "index"]);
+
 Route::post("crearPaciente", [PacientesController::class, "store"]);
 Route::put("actualizarPaciente/{id}", [PacientesController::class, "update"]);
 Route::delete("eliminarPaciente/{id}", [PacientesController::class, "destroy"]);
@@ -41,13 +62,10 @@ Route::delete("eliminarPaciente/{id}", [PacientesController::class, "destroy"]);
 
 Route::post("loginRecepcionista", [RecepcionistasController::class, "login"]);
 Route::post('logoutRecepcionista', [RecepcionistasController::class, 'logout']);
-Route::get("listarRecepcionistas", [RecepcionistasController::class, "index"]);
-Route::post("crearRecepcionista", [RecepcionistasController::class, "store"]);
+
 Route::put("actualizarRecepcionistas/{id}", [RecepcionistasController::class, "update"]);
-Route::delete("eliminarRecepcionistas/{id}", [RecepcionistasController::class, "destroy"]);
 
 
-Route::get("listarEspecialidades", [EspecialidadesController::class, "index"]);
 Route::post("crearEspecialidades", [EspecialidadesController::class, "store"]);
 Route::put("actualizarEspecialidades/{id}", [EspecialidadesController::class, "update"]);
 Route::delete("eliminarEspecialidades/{id}", [EspecialidadesController::class, "destroy"]);
@@ -61,7 +79,7 @@ Route::delete("eliminarEspecialidadesMedicos/{id}", [EspecialidadesMedicosContro
 
 
 Route::get("listarCitas", [CitasController::class, "index"]);
-Route::post("crearCitas", [CitasController::class, "store"]);
+
 Route::put("actualizarCitas/{id}", [CitasController::class, "update"]);
 Route::delete("eliminarCitas/{id}", [CitasController::class, "destroy"]);
 
@@ -94,6 +112,3 @@ Route::get("pacientePorNacionalidad/{nacionalidad}", [PacientesController::class
 
 //Filtar por rh
 Route::get("pacientePorRh/{rh}", [PacientesController::class, "pacientePorRh"]);
-
-
-

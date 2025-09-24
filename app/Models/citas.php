@@ -8,12 +8,11 @@ class citas extends Model
 {
     protected $fillable = [
     "descripcion",
-    "consultorio",
+   
     "id_medico",
     "id_paciente",
     "fecha",
-    "hora_inicio",
-    "hora_final",
+    "hora_inicio",   
     "estado"
     
     ];

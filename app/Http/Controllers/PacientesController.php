@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\pacientes;
+use Illuminate\Container\Attributes\Auth;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
@@ -202,5 +203,13 @@ class PacientesController extends Controller
             "message" => "Cambio de la clave exitosamente"
 
         ], 200);
+    }
+
+    public function me(Request $request)
+    {
+        return response()->json([
+            "success" => true,
+            "user" => $request->user()
+        ]);
     }
 }
