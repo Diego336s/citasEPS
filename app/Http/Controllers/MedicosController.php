@@ -2,13 +2,16 @@
 
 namespace App\Http\Controllers;
 
-
+use App\Models\administradores;
 use App\Models\medicos;
-
+use App\Models\pacientes;
+use App\Models\recepcionistas;
 use Illuminate\Auth\Events\Validated;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
+
+use function Laravel\Prompts\select;
 
 class MedicosController extends Controller
 {
@@ -17,6 +20,25 @@ class MedicosController extends Controller
         $medicos = medicos::all();
         return response()->json($medicos);
     }
+
+    //listar medicos con especialidades 
+    public function listarMedicosConEspecialidades()
+    {
+        $medicos = medicos::join("especialidades_medicos", "medicos.id", "=", "especialidades_medicos.id_medico")
+            ->join("especialidades", "especialidades_medicos.id_especialidad", "=", "especialidades.id")
+            ->select(
+                "medicos.*",
+                "especialidades.nombre as especialidad"
+            )->get();
+        if ($medicos->isEmpty()) {
+            return response()->json(["message" => "No hay medicos registrados"]);
+        }
+        return response()->json([
+            "success" => true,
+            "medicos" => $medicos
+        ]);
+    }
+
 
     public function login(Request $request)
     {
@@ -87,6 +109,17 @@ class MedicosController extends Controller
             return response()->json($validator->errors(), 400);
         }
 
+        $correoExistenteMedicos = medicos::where("correo", $request->correo)->exists();
+        $correoExistenteAdmin = administradores::where("correo", $request->correo)->exists();
+        $correoExistenteRecepcionista = recepcionistas::where("correo", $request->correo)->exists();
+        $correoExistentePaciente = pacientes::where("correo", $request->correo)->exists();
+        if ($correoExistenteAdmin || $correoExistenteMedicos || $correoExistenteRecepcionista || $correoExistentePaciente) {
+            return response()->json([
+                "success" => false,
+                "message" => "El correo $request->correo ya se encuentra registrado"
+            ]);
+        }
+
         $medicos = medicos::create([
             "nombre" => $request->nombre,
             "apellido" => $request->apellido,
@@ -129,12 +162,14 @@ class MedicosController extends Controller
             "apellido" => "string",
             "documento" => "integer",
             "telefono" => "integer|min:10",
-            "correo" => "string"
+
         ]);
 
         if ($validator->fails()) {
             return response()->json($validator->errors(), 400);
         }
+
+
 
         $medicos->update($validator->validated());
         return response()->json($medicos);

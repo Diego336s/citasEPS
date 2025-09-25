@@ -17,11 +17,14 @@ use Illuminate\Support\Facades\Route;
 
 
 Route::middleware(['auth:sanctum'])->group(function () {
+    //Acceso medico
     Route::middleware('ability:Medico')->group(function () {
         Route::post('logoutMedico', [MedicosController::class, 'logout']);
     });
+
+    //Acceso medico y admin
     Route::middleware('ability:Medico, Admin')->group(function () {
-        
+
         Route::get('listarMedicos', [MedicosController::class, 'index']);
         Route::post("crearMedico", [MedicosController::class, "store"]);
         Route::delete("eliminarMedico/{id}", [MedicosController::class, "destroy"]);
@@ -31,16 +34,26 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get("listarRecepcionistas", [RecepcionistasController::class, "index"]);
         Route::post("crearRecepcionista", [RecepcionistasController::class, "store"]);
         Route::delete("eliminarRecepcionistas/{id}", [RecepcionistasController::class, "destroy"]);
-
     });
+
+    //Acceso paciente y admin
     Route::middleware('ability:Paciente, Admin')->group(function () {
         Route::get("listarEspecialidades", [EspecialidadesController::class, "index"]);
+        Route::get('listarMedicosConEspecialidades', [MedicosController::class, 'listarMedicosConEspecialidades']);
     });
+
+    //Acceso paciente
     Route::middleware('ability:Paciente')->group(function () {
         Route::get('me', [PacientesController::class, 'me']);
         Route::get("filtrarMedicosPorEspecialidad/{id_especialidad}", [EspecialidadesMedicosController::class, "filtrar_medicos_por_especialidad"]);
-
+        Route::post('cambiarClave/{id}', [PacientesController::class, 'cambiarClave']);
         Route::post("crearCitas", [CitasController::class, "store"]);
+         Route::get("citasEsteMesPorPaciente/{id}", [CitasController::class, "citasEsteMesPorPaciente"]);
+    });
+
+    //Acceso admin
+    Route::middleware('ability:Admin')->group(function () {
+    Route::get('listarMedicos', [MedicosController::class, 'index']);
     });
 });
 
@@ -98,8 +111,11 @@ Route::get("pacientesPorSexo/{sexo}", [PacientesController::class, "filtrarPacie
 //Citas confirmadas
 Route::get("citasConfirmadas", [CitasController::class, "citasConfirmadas"]);
 
-//Filtrar cita por documento del paciente
+//Filtrar citas por documento del paciente
 Route::get("citasPorPacientes/{documento}", [CitasController::class, "citasPorPaciente"]);
+
+//Filtrar citas que esten confirmadas por documento del paciente
+Route::get("citasPorPacientesConfirmadas/{documento}", [CitasController::class, "citasPorPacienteConfirmadas"]);
 
 //Citas del dia
 Route::get("citasDelDia", [CitasController::class, "citasDeHoy"]);

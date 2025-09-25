@@ -69,7 +69,7 @@ class AdministradoresController extends Controller
             "apellido" => "string",
             "documento" => "integer",
             "telefono" => "integer|min:10",
-            "correo" => "email"
+           
         ]);
 
         if ($validator->fails()) {

@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
-
+use App\Models\administradores;
+use App\Models\medicos;
+use App\Models\pacientes;
 use App\Models\recepcionistas;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -86,6 +88,17 @@ class RecepcionistasController extends Controller
 
         if ($validator->fails()) {
             return response()->json($validator->errors(), 400);
+        }
+
+         $correoExistenteMedicos = medicos::where("correo", $request->correo)->exists();
+        $correoExistenteAdmin = administradores::where("correo", $request->correo)->exists();
+        $correoExistenteRecepcionista = recepcionistas::where("correo", $request->correo)->exists();
+         $correoExistentePaciente = pacientes::where("correo", $request->correo)->exists();
+        if($correoExistenteAdmin || $correoExistenteMedicos || $correoExistenteRecepcionista || $correoExistentePaciente){
+          return response()->json([
+            "success" => false,
+            "message" => "El correo $request->correo ya se encuentra registrado"
+          ]);
         }
 
         $recepcionistas = recepcionistas::create([
