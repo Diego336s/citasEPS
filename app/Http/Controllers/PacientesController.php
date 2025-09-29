@@ -146,12 +146,12 @@ class PacientesController extends Controller
         $validator = Validator::make($request->all(), [
             "nombre" => "string",
             "apellido" => "string",
-            "documento" => "integer",
+            "documento" => "sometimes|integer",
             "telefono" => "integer|min:10",
-            "fecha_nacimiento" => "date",
-            "rh" => "string",
-            "sexo" => "string",
-            "nacionalidad" => "string"
+            "fecha_nacimiento" => "sometimes|date",
+            "rh" => "sometimes|string",
+            "sexo" => "sometimes|string",
+            "nacionalidad" => "sometimes|string"
         ]);
 
         if ($validator->fails()) {
@@ -160,7 +160,10 @@ class PacientesController extends Controller
 
        
         $pacientes->update($validator->validated());
-        return response()->json($pacientes);
+        return response()->json([
+            "success" => true,
+             $pacientes
+        ]);
     }
 
     public function destroy(string $id)

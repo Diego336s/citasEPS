@@ -14,11 +14,28 @@ use Illuminate\Support\Facades\Validator;
 
 class RecepcionistasController extends Controller
 {
+    public function me(Request $request)
+    {
+        return response()->json([
+            "success" => true,
+            "user" => $request->user()
+        ]);
+    }
 
     public function index()
     {
         $recepcionistas = recepcionistas::all();
-        return response()->json($recepcionistas);
+
+        if ($recepcionistas->isEmpty()) {
+            return response()->json([
+                "success" => false,
+                "message" => "No hay recepcionistas registrados"
+            ]);
+        }
+        return response()->json([
+            "success" => true,
+            "recepcionistas"  => $recepcionistas
+        ]);
     }
 
     public function logout(Request $request)
@@ -87,18 +104,21 @@ class RecepcionistasController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json($validator->errors(), 400);
+            return response()->json([
+                "success" => false,
+                "message" => $validator->errors()
+            ], 400);
         }
 
-         $correoExistenteMedicos = medicos::where("correo", $request->correo)->exists();
+        $correoExistenteMedicos = medicos::where("correo", $request->correo)->exists();
         $correoExistenteAdmin = administradores::where("correo", $request->correo)->exists();
         $correoExistenteRecepcionista = recepcionistas::where("correo", $request->correo)->exists();
-         $correoExistentePaciente = pacientes::where("correo", $request->correo)->exists();
-        if($correoExistenteAdmin || $correoExistenteMedicos || $correoExistenteRecepcionista || $correoExistentePaciente){
-          return response()->json([
-            "success" => false,
-            "message" => "El correo $request->correo ya se encuentra registrado"
-          ]);
+        $correoExistentePaciente = pacientes::where("correo", $request->correo)->exists();
+        if ($correoExistenteAdmin || $correoExistenteMedicos || $correoExistenteRecepcionista || $correoExistentePaciente) {
+            return response()->json([
+                "success" => false,
+                "message" => "El correo $request->correo ya se encuentra registrado"
+            ]);
         }
 
         $recepcionistas = recepcionistas::create([
@@ -109,13 +129,11 @@ class RecepcionistasController extends Controller
             "correo" =>  $request->correo,
             "clave" => Hash::make($request->clave)
         ]);
-        $token = $recepcionistas->createToken("auth_token", ["Recepcionista"])->plainTextToken;
+
         return response()->json([
             "success" => true,
             "message" => "El recepcionista $request->nombre $request->apellido sea registrado exitosamente",
-            "user" => $recepcionistas,
-            "token_access" => $token,
-            "token_type" => "Bearer"
+            "user" => $recepcionistas
         ], 201);
     }
 
@@ -124,17 +142,23 @@ class RecepcionistasController extends Controller
 
         $recepcionistas = recepcionistas::find($id);
         if (!$recepcionistas) {
-            return response()->json(["messsage" => "Recepcionista no encontrado"], 404);
+            return response()->json([
+                "success" => false,
+                "messsage" => "Recepcionista no encontrado"
+            ], 404);
         }
 
-        return response()->json($recepcionistas);
+        return response()->json([
+            "success" => true,
+            "user" => $recepcionistas
+        ]);
     }
 
     public function update(Request $request, string $id)
     {
         $recepcionistas = recepcionistas::find($id);
         if (!$recepcionistas) {
-            return response()->json(["message" => "Recepcionista no encontrado"], 404);
+            return response()->json(["success" => false, "message" => "Recepcionista no encontrado"], 404);
         }
 
         $validator = Validator::make($request->all(), [
@@ -142,27 +166,30 @@ class RecepcionistasController extends Controller
             "apellido" => "string",
             "documento" => "integer",
             "telefono" => "integer|min:10",
-            "correo" => "email",
-            "clave" => "string|min:6"
+
         ]);
 
         if ($validator->fails()) {
-            return response()->json($validator->errors(), 400);
+            return response()->json(["success" => false, $validator->errors()], 400);
         }
 
         $recepcionistas->update($validator->validated());
-        return response()->json($recepcionistas);
+        return response()->json([
+            "success" => true,
+            "message" => "Recepcionista $request->nombre  $request->apellido actualizado correctamente",
+            $recepcionistas
+        ], 200);
     }
 
     public function destroy(string $id)
     {
         $recepcionistas = recepcionistas::find($id);
         if (!$recepcionistas) {
-            return response()->json(["message" => "Recepcionista no encontrado"], 404);
+            return response()->json(["success" => false, "message" => "Recepcionista no encontrado"], 404);
         }
 
         $recepcionistas->delete();
-        return response()->json(["message" => "Recepcionista eliminado correctamente"], 200);
+        return response()->json(["success" => true, "message" => "Recepcionista eliminado correctamente"], 200);
     }
 
     public function cambiarClave(Request $request, string $id)
@@ -189,6 +216,44 @@ class RecepcionistasController extends Controller
         return response()->json([
             "success" => true,
             "message" => "Cambio de la clave exitosamente"
+
+        ], 200);
+    }
+
+
+    public function cambiarCorreo(Request $request, string $id)
+    {
+        $paciente = recepcionistas::find($id);
+        if (!$paciente) {
+            return response()->json(["menssge" => "Paciente no encontrado"]);
+        }
+
+        $validator = Validator::make($request->all(), [
+            "correo" => "string|email"
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                "success" => false,
+                "message" => $validator->errors()
+            ], 400);
+        }
+
+        $correoExistenteMedicos = medicos::where("correo", $request->correo)->exists();
+        $correoExistenteAdmin = administradores::where("correo", $request->correo)->exists();
+        $correoExistenteRecepcionista = recepcionistas::where("correo", $request->correo)->exists();
+        $correoExistentePaciente = pacientes::where("correo", $request->correo)->exists();
+        if ($correoExistenteAdmin || $correoExistenteMedicos || $correoExistenteRecepcionista || $correoExistentePaciente) {
+            return response()->json([
+                "success" => false,
+                "message" => "El correo $request->correo ya se encuentra registrado"
+            ]);
+        }
+
+        $paciente->update($validator->validated());
+        return response()->json([
+            "success" => true,
+            "message" => "Cambio del correo exitoso"
 
         ], 200);
     }

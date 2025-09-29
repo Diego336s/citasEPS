@@ -26,7 +26,7 @@ class CitasController extends Controller
             "id_paciente" => "required|integer",
             "fecha" => "required|date",
             "hora_inicio" => "required",
-            "estado" => "required|in:Pendiente,Confirmada,Cancelada"
+            "estado" => "required|in:Pendiente,Confirmada,Cancelada,Finalizada"
         ]);
 
         if ($validator->fails()) {
@@ -50,28 +50,59 @@ class CitasController extends Controller
     {
         $citas = citas::find($id);
         if (!$citas) {
-            return response()->json(["message" => "Cita no encontrada"], 400);
+            return response()->json(["success" => false, "message" => "Cita no encontrada"], 400);
         }
 
-        return response()->json($citas);
+        return response()->json(["success" => true, $citas]);
     }
 
     public function update(Request $request, string $id)
     {
         $citas = citas::find($id);
         if (!$citas) {
-            return response()->json(["message" => "Cita no encontrada"], 400);
+            return response()->json([
+                "success" => false,
+                "message" => "Cita no encontrada"
+            ], 400);
         }
 
 
         $validator = Validator::make($request->all(), [
-            "descripcion" => "string",
+            "descripcion" => "sometimes|string",
+            "id_medico" => "sometimes|integer",
+            "id_paciente" => "sometimes|integer",
+            "fecha" => "sometimes|date",
+            "hora_inicio" => "sometimes|string",
+            "estado" => "sometimes|in:Pendiente,Confirmada,Cancelada,Finalizada"
+        ]);
 
-            "id_medico" => "integer",
-            "id_paciente" => "integer",
-            "fecha" => "date",
-            "hora_inicio" => "string",
-            "estado" => "in:Pendiente,Confirmada,Cancelada"
+        if ($validator->fails()) {
+            return response()->json([
+                "success" => false,
+                "message" => $validator->errors()
+            ], 400);
+        }
+
+        $citas->update($validator->validated());
+        return response()->json([
+            "success" => true,
+            $citas
+        ], 200);
+    }
+
+    public function cambiarEstadoCita(Request $request, string $id)
+    {
+        $citas = citas::find($id);
+        if (!$citas) {
+            return response()->json([
+                "success" => false,
+                "message" => "Cita no encontrada",
+            ], 400);
+        }
+
+
+        $validator = Validator::make($request->all(), [
+            "estado" => "in:Pendiente,Confirmada,Cancelada,Finalizada"
         ]);
 
         if ($validator->fails()) {
@@ -79,8 +110,14 @@ class CitasController extends Controller
         }
 
         $citas->update($validator->validated());
-        return response()->json($citas, 200);
+        return response()->json([
+            "success" => true,
+            "message" => "La cita ha sido cancelada correctamente.",
+            $citas
+        ], 200);
     }
+
+    
 
     public function destroy(string $id)
     {
@@ -101,13 +138,28 @@ class CitasController extends Controller
             ->whereYear('fecha', now()->year)
             ->where("estado", $estado)
             ->count();
+
+
         return response()->json([
             "success" => true,
             "citas" => $citasMes
         ]);
     }
 
-    public function citasConfirmadas()
+
+    public function totalCitasPorPaciente($pacienteId)
+    {
+        $estado = "Finalizada";
+        $totalCitas = citas::where('id_paciente', $pacienteId)
+            ->where("estado", $estado)
+            ->count();
+        return response()->json([
+            "success" => true,
+            "citas" => $totalCitas
+        ]);
+    }
+
+    public function citasConfirmdas()
     {
         $citas = citas::join('medicos', 'citas.id_medico', '=', 'medicos.id')
             ->join('pacientes', 'citas.id_paciente', '=', 'pacientes.id')
@@ -119,7 +171,44 @@ class CitasController extends Controller
             ->where('citas.estado', 'Confirmada')
             ->get();
 
-        return response()->json($citas);
+        if ($citas->isEmpty()) {
+            return response()->json([
+                "success" => false,
+                "message" => "No se encontraron citas pendientes"
+            ], 404);
+        }
+
+        return response()->json([
+            "success" => true,
+            "citas" =>   $citas
+        ]);
+    }
+
+    public function citasPendientes()
+    {
+        $citas = citas::join('medicos', 'citas.id_medico', '=', 'medicos.id')
+            ->join('pacientes', 'citas.id_paciente', '=', 'pacientes.id')
+            ->select(
+                'citas.*',
+                'medicos.nombre as nombre_medico',
+                'medicos.apellido as apellido_medico',                
+                'pacientes.nombre as nombre_paciente',
+                 'pacientes.apellido as apellido_paciente'
+            )
+            ->where('citas.estado', 'Pendiente')
+            ->get();
+
+        if ($citas->isEmpty()) {
+            return response()->json([
+                "success" => false,
+                "message" => "No se encontraron citas pendientes"
+            ], 404);
+        }
+
+        return response()->json([
+            "success" => true,
+            "citas" =>   $citas
+        ]);
     }
 
     public function citasPorPaciente(string $documento)
@@ -136,6 +225,55 @@ class CitasController extends Controller
                 'especialidades.nombre as especialidad'
             )
             ->where('pacientes.documento', $documento)
+            ->get();
+
+        if ($citas->isEmpty()) {
+            return response()->json(["message" => "No se encontraron citas para este paciente"], 404);
+        }
+
+        return response()->json($citas);
+    }
+
+    public function listarCitasConDoctorEspecialidad()
+    {
+        $citas = Citas::join('pacientes', 'citas.id_paciente', '=', 'pacientes.id')
+            ->join('medicos', 'citas.id_medico', '=', 'medicos.id')
+            ->join("especialidades_medicos", "medicos.id", "=", "especialidades_medicos.id_medico")
+            ->join("especialidades", "especialidades_medicos.id_especialidad", "=", "especialidades.id")
+            ->select(
+                'citas.*',
+                'pacientes.nombre as nombre_paciente',
+                'pacientes.apellido as apellido_paciente',
+                 'pacientes.documento as documento_paciente',
+                'medicos.nombre as nombre_medico',
+                'medicos.apellido as apellido_medico',
+                'especialidades.nombre as especialidad'
+            )        
+            ->get();
+
+        if ($citas->isEmpty()) {
+            return response()->json(["message" => "No se encontraron citas para este paciente"], 404);
+        }
+
+        return response()->json($citas);
+    }
+
+ public function citasPorDoctorConfirmadas(string $idMedico)
+    {
+        $estado = "Confirmada";
+        $citas = Citas::join('pacientes', 'citas.id_paciente', '=', 'pacientes.id')
+            ->join('medicos', 'citas.id_medico', '=', 'medicos.id')
+            ->join("especialidades_medicos", "medicos.id", "=", "especialidades_medicos.id_medico")
+            ->join("especialidades", "especialidades_medicos.id_especialidad", "=", "especialidades.id")
+            ->select(
+                'citas.*',
+                'pacientes.nombre as nombre_paciente',
+                'medicos.nombre as nombre_medico',
+                'medicos.apellido as apellido_medico',
+                'especialidades.nombre as especialidad'
+            )
+            ->where('citas.id_medico', $idMedico)
+            ->where("citas.estado", $estado)
             ->get();
 
         if ($citas->isEmpty()) {
@@ -188,5 +326,35 @@ class CitasController extends Controller
     {
         $totalCitas = citas::count();
         return response()->json(["message" => "Total de citas: $totalCitas"], 200);
+    }
+
+    public function totalCitasPorMes()
+    {
+        $estado = "Finalizada";
+        $mesActual = now()->month;
+        $anioActual = now()->year;
+
+        $totalCitas = citas::where("estado", $estado)
+            ->whereMonth("fecha", $mesActual)   // columna fecha de la cita
+            ->whereYear("fecha", $anioActual)
+            ->count();
+
+        return response()->json([
+            "success" => true,
+            "citas" => $totalCitas
+        ]);
+    }
+
+    public function totalCitasPendiente()
+    {
+        $estado = "Pendiente";
+       
+
+        $totalCitas = citas::where("estado", $estado)->count();
+
+        return response()->json([
+            "success" => true,
+            "citas" => $totalCitas
+        ]);
     }
 }

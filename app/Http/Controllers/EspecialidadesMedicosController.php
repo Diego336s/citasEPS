@@ -31,22 +31,27 @@ class EspecialidadesMedicosController extends Controller
         return response()->json($especialidadesMedicos, 201);
     }
 
-    public function filtrar_medicos_por_especialidad (string $id_Especialidad)
+    public function filtrar_medicos_por_especialidad(string $id_Especialidad)
     {
         $especialidadesMedicos = especialidades_medicos::where("id_especialidad", $id_Especialidad)->get();
-        if (!$especialidadesMedicos || $especialidadesMedicos->isEmpty()) {
-            return response()->json(["message" => "No hay medicos disponibles con esa especialidad"], 400);
+
+        if ($especialidadesMedicos->isEmpty()) {
+            return response()->json([
+                "success" => false,
+                "message" => "No hay médicos disponibles con esa especialidad"
+            ], 404);
         }
 
-        $cantidad_de_medicos_filtrados = $especialidadesMedicos->count();
+        $informacionMedicos = $especialidadesMedicos->map(function ($especialidadMedico) {
+            return medicos::find($especialidadMedico->id_medico);
+        });
 
-       $informacionMedicos =[];
-        for ($i=0; $i < $cantidad_de_medicos_filtrados; $i++) { 
-          $informacionMedicos = medicos::find($especialidadesMedicos[$i]->id_medico)->get();
-         
-        }
-        return response()->json($informacionMedicos);
+        return response()->json([
+            "success" => true,
+            "medicos" => $informacionMedicos
+        ]);
     }
+
 
     public function update(Request $request, string $id)
     {
