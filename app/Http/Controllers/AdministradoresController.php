@@ -181,34 +181,39 @@ class AdministradoresController extends Controller
         ], 200);
     }
 
-    public function olvideMiClave(Request $request){       
+     public function olvideMiClave(Request $request)
+{
+    $validator = Validator::make($request->all(), [
+        "correo" => "required|string|email",
+        "clave"  => "required|string|min:6"
+    ]);
 
-        $validator = Validator::make($request->all(), [
-            "clave" => "string|min:6",
-            "correo" => "string|email"
-        ]);
-
-          if ($validator->fails()) {
-            return response()->json([
-                "success" => false,
-                "message" => $validator->errors()
-            ], 400);
-        }
-         $administrador = administradores::find($request->correo);
-        if (!$administrador) {
-            return response()->json(["success"=> false,"menssge" => "Especialidad no encontrado"]);
-        }
-
-      
-
-        $administrador->update([
-            "clave" => Hash::make($request->clave)
-        ]);
+    if ($validator->fails()) {
         return response()->json([
-            "success" => true,
-            "message" => "Cambio de la clave exitosamente"
-
-        ], 200);
+            "success" => false,
+            "message" => $validator->errors()
+        ], 400);
     }
+
+    // Buscar paciente por correo
+    $administradores = administradores::where("correo", $request->correo)->first();
+
+    if (!$administradores) {
+        return response()->json([
+            "success" => false,
+            "message" => "No se encontró un administrador con ese correo"
+        ], 404);
+    }
+
+    // Actualizar clave
+    $administradores->update([
+        "clave" => Hash::make($request->clave)
+    ]);
+
+    return response()->json([
+        "success" => true,
+        "message" => "Cambio de clave exitoso"
+    ], 200);
+}
 
 }
