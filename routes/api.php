@@ -21,6 +21,10 @@ Route::post("loginRecepcionista", [RecepcionistasController::class, "login"]);
 Route::post("loginAdmin", [AdministradoresController::class, "login"]);
 Route::post("loginMedico", [MedicosController::class, "login"]);
 Route::post("loginPaciente", [PacientesController::class, "login"]);
+Route::put('olvide/clave/Recepcionista', [RecepcionistasController::class, 'olvideMiClave']);
+Route::put('olvide/clave/Paciente', [PacientesController::class, 'olvideMiClave']);
+Route::put('olvide/clave/Admin', [AdministradoresController::class, 'olvideMiClave']);
+Route::put('olvide/clave/Doctor', [MedicosController::class, 'olvideMiClave']);
 
 Route::middleware(['auth:sanctum'])->group(function () {
     //Acesso recepcionista
@@ -48,6 +52,12 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
         Route::put("actualizarMedico/{id}", [MedicosController::class, "update"]);
         Route::get('citas/confirmadas/doctor/{id}', [CitasController::class, 'citasPorDoctorConfirmadas']);
+        Route::get("citas/porMedicos/conEspecialidades/{id}", [CitasController::class, "listarCitasPorDoctorConEspecialidad"]);
+        Route::get("pacientes/atendidos/doctor/{id}", [MedicosController::class, "pacientesAtendidosPorDoctor"]);
+
+
+        Route::get("total/citas/mes/doctor/{id}", [CitasController::class, "totalCitasPorMesDoctor"]);
+        Route::get("total/citas/confirmadas/{id}", [CitasController::class, "totalCitasConfirmadasDoctor"]);
     });
 
 

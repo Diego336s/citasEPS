@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\citas;
+use Dotenv\Util\Str;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
@@ -117,7 +118,7 @@ class CitasController extends Controller
         ], 200);
     }
 
-    
+
 
     public function destroy(string $id)
     {
@@ -191,9 +192,9 @@ class CitasController extends Controller
             ->select(
                 'citas.*',
                 'medicos.nombre as nombre_medico',
-                'medicos.apellido as apellido_medico',                
+                'medicos.apellido as apellido_medico',
                 'pacientes.nombre as nombre_paciente',
-                 'pacientes.apellido as apellido_paciente'
+                'pacientes.apellido as apellido_paciente'
             )
             ->where('citas.estado', 'Pendiente')
             ->get();
@@ -244,11 +245,11 @@ class CitasController extends Controller
                 'citas.*',
                 'pacientes.nombre as nombre_paciente',
                 'pacientes.apellido as apellido_paciente',
-                 'pacientes.documento as documento_paciente',
+                'pacientes.documento as documento_paciente',
                 'medicos.nombre as nombre_medico',
                 'medicos.apellido as apellido_medico',
                 'especialidades.nombre as especialidad'
-            )        
+            )
             ->get();
 
         if ($citas->isEmpty()) {
@@ -258,7 +259,31 @@ class CitasController extends Controller
         return response()->json($citas);
     }
 
- public function citasPorDoctorConfirmadas(string $idMedico)
+    public function listarCitasPorDoctorConEspecialidad(string $id)
+    {
+        $citas = Citas::join('pacientes', 'citas.id_paciente', '=', 'pacientes.id')
+            ->join('medicos', 'citas.id_medico', '=', 'medicos.id')
+            ->join("especialidades_medicos", "medicos.id", "=", "especialidades_medicos.id_medico")
+            ->join("especialidades", "especialidades_medicos.id_especialidad", "=", "especialidades.id")
+            ->select(
+                'citas.*',
+                'pacientes.nombre as nombre_paciente',
+                'pacientes.apellido as apellido_paciente',
+                'pacientes.documento as documento_paciente',
+                'medicos.nombre as nombre_medico',
+                'medicos.apellido as apellido_medico',
+                'especialidades.nombre as especialidad'
+            )->where("citas.id_medico", $id)
+            ->get();
+
+        if ($citas->isEmpty()) {
+            return response()->json(["message" => "No se encontraron citas para este paciente"], 404);
+        }
+
+        return response()->json($citas);
+    }
+
+    public function citasPorDoctorConfirmadas(string $idMedico)
     {
         $estado = "Confirmada";
         $citas = Citas::join('pacientes', 'citas.id_paciente', '=', 'pacientes.id')
@@ -277,10 +302,16 @@ class CitasController extends Controller
             ->get();
 
         if ($citas->isEmpty()) {
-            return response()->json(["message" => "No se encontraron citas para este paciente"], 404);
+            return response()->json([
+                "success" => false,
+                "message" => "No se encontraron citas para este paciente"
+            ], 404);
         }
 
-        return response()->json($citas);
+        return response()->json([
+            "success" => true,
+            "citas" => $citas
+        ]);
     }
 
     public function citasPorPacienteConfirmadas(string $documento)
@@ -348,9 +379,43 @@ class CitasController extends Controller
     public function totalCitasPendiente()
     {
         $estado = "Pendiente";
-       
+
 
         $totalCitas = citas::where("estado", $estado)->count();
+
+        return response()->json([
+            "success" => true,
+            "citas" => $totalCitas
+        ]);
+    }
+
+    public function totalCitasConfirmadasDoctor(string $id)
+    {
+        $estado = "Confirmada";
+
+
+        $totalCitas = citas::where("estado", $estado)
+            ->where("id_medico", $id)
+            ->count();
+
+        return response()->json([
+            "success" => true,
+            "citas" => $totalCitas
+        ]);
+    }
+
+
+    public function totalCitasPorMesDoctor(string $id)
+    {
+        $estado = "Finalizada";
+        $mesActual = now()->month;
+        $anioActual = now()->year;
+
+        $totalCitas = citas::where("estado", $estado)
+            ->where("id_medico", $id)
+            ->whereMonth("fecha", $mesActual)   // columna fecha de la cita
+            ->whereYear("fecha", $anioActual)
+            ->count();
 
         return response()->json([
             "success" => true,

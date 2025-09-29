@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\administradores;
+use App\Models\citas;
 use App\Models\especialidades;
 use App\Models\especialidades_medicos;
 use App\Models\medicos;
@@ -227,11 +228,15 @@ class MedicosController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json($validator->errors(), 400);
+            return response()->json(["success" => false, $validator->errors()], 400);
         }
 
         $medicos->update($validator->validated());
-        return response()->json($medicos);
+        return response()->json([
+            "success" => true,
+            "message" => "Medico $request->nombre  $request->apellido actualizado correctamente",
+            $medicos
+        ]);
     }
 
     public function actualizarMedicoConEspecialida(Request $request, $id, $idEspecialidad)
@@ -368,6 +373,37 @@ class MedicosController extends Controller
         ], 200);
     }
 
+   public function olvideMiClave(Request $request){       
+
+        $validator = Validator::make($request->all(), [
+            "clave" => "string|min:6",
+            "correo" => "string|email"
+        ]);
+
+          if ($validator->fails()) {
+            return response()->json([
+                "success" => false,
+                "message" => $validator->errors()
+            ], 400);
+        }
+         $medico = medicos::find($request->correo);
+        if (!$medico) {
+            return response()->json(["success"=> false,"menssge" => "Especialidad no encontrado"]);
+        }
+
+      
+
+        $medico->update([
+            "clave" => Hash::make($request->clave)
+        ]);
+        return response()->json([
+            "success" => true,
+            "message" => "Cambio de la clave exitosamente"
+
+        ], 200);
+    }
+
+
     public function cambiarCorreo(Request $request, string $id)
     {
         $medico = medicos::find($id);
@@ -403,5 +439,41 @@ class MedicosController extends Controller
             "message" => "Cambio del correo exitoso"
 
         ], 200);
+    }
+
+    public function pacientesAtendidosPorDoctor($doctorId)
+    {
+        $pacientes = citas::join("pacientes", "citas.id_paciente", "=", "pacientes.id")
+            ->where("citas.id_medico", $doctorId)
+            ->where("citas.estado", "Finalizada")
+            ->select(
+                "pacientes.id",
+                "pacientes.nombre",
+                "pacientes.apellido",
+                "pacientes.documento",
+                "pacientes.telefono",
+                "pacientes.correo"
+            )
+            ->groupBy(
+                "pacientes.id",
+                "pacientes.nombre",
+                "pacientes.apellido",
+                "pacientes.documento",
+                "pacientes.telefono",
+                "pacientes.correo"
+            )
+            ->get();
+
+        if ($pacientes->isEmpty()) {
+            return response()->json([
+                "success" => false,
+                "message" => "Este doctor aún no ha atendido pacientes"
+            ], 404);
+        }
+
+        return response()->json([
+            "success" => true,
+            "pacientes" => $pacientes
+        ]);
     }
 }
