@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AdministradoresController;
 use App\Http\Controllers\CitasController;
+use App\Http\Controllers\CodigoVerificacionController;
 use App\Http\Controllers\EspecialidadesController;
 use App\Http\Controllers\EspecialidadesMedicosController;
 use App\Http\Controllers\MedicosController;
@@ -26,6 +27,11 @@ Route::put('olvide/clave/Paciente', [PacientesController::class, 'olvideMiClave'
 Route::put('olvide/clave/Admin', [AdministradoresController::class, 'olvideMiClave']);
 Route::put('olvide/clave/Doctor', [MedicosController::class, 'olvideMiClave']);
 
+
+
+Route::post('/enviar/codigoVerificacion', [CodigoVerificacionController::class, 'enviarCodigo']);
+
+Route::post('/verificar/codigo', [CodigoVerificacionController::class, 'verificarCodigo']);
 Route::middleware(['auth:sanctum'])->group(function () {
     //Acesso recepcionista
     Route::middleware('ability:Recepcionista')->group(function () {
